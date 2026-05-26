@@ -1,11 +1,23 @@
+/* global safeStorage */
 /* global ORGS */
 /* exported openAnalytics, closeAnEvent, fetchAll, fetchModalGH, toggleCompareFromModal, openCompare, closeCompareEv, imgErr, toggleBookmark, toggleChip, resetFilters, closeModalEv, openIssuesPage, closeIssuesPage, fetchAllIssues, showMoreIssues */
+
+/**
+ * Robust wrapper for localStorage to prevent synchronous exceptions (e.g. QuotaExceededError)
+ * from crashing the main JavaScript thread.
+ */
+
+
+// Example refactor for a vulnerable call:
+// OLD: safeStorage.set('gsoc_session', JSON.stringify(sessionData))
+// NEW: safeStorage.set('gsoc_session', JSON.stringify(sessionData))
+
 
 // ══════════════════════════════════════════════
 // THEME
 // ══════════════════════════════════════════════
 (function(){
-  const saved = localStorage.getItem('theme') || 'light';
+  const saved = safeStorage.get('theme') || 'light';
   document.documentElement.classList.toggle('dark', saved === 'dark');
   updateThemeIcon();
 })();
@@ -22,7 +34,7 @@ function escapeHtml(value) {
 
 globalThis.toggleTheme = function(){
   const isDark = document.documentElement.classList.toggle('dark');
-  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  safeStorage.set('theme', isDark ? 'dark' : 'light');
   updateThemeIcon();
 };
 
@@ -76,13 +88,9 @@ const cdTimer=setInterval(updateCountdown,1000);
 // ANALYTICS ENGINE
 // ══════════════════════════════════════════════
 const AN={
-  g(k,d){try{return JSON.parse(localStorage.getItem('gaf_'+k))??d;}catch{return d;}},
+  g(k,d){try{return JSON.parse(safeStorage.get('gaf_'+k))??d;}catch{return d;}},
   s(k,v){
-    try{
-      localStorage.setItem('gaf_'+k,JSON.stringify(v));
-    }catch(err){
-      console.warn('Analytics storage write failed for key:',k,err);
-    }
+    safeStorage.set('gaf_'+k,JSON.stringify(v));
   },
   inc(k){this.s(k,(this.g(k,0)+1));},
   push(k,v,max=20){const a=this.g(k,[]);a.unshift(v);this.s(k,a.slice(0,max));},
@@ -205,7 +213,7 @@ function closeAn(){document.getElementById('anBg').classList.remove('open');docu
 // GITHUB API
 // ══════════════════════════════════════════════
 const API='/api/github';
-const cache=JSON.parse(localStorage.getItem('gaf_ghc')||'{}');
+const cache=JSON.parse(safeStorage.get('gaf_ghc')||'{}');
 
 /**
  * Saves cache to localStorage with quota exceeded error recovery.
@@ -214,18 +222,12 @@ const cache=JSON.parse(localStorage.getItem('gaf_ghc')||'{}');
  * @param {object} value - Value to cache
  */
 function saveCache(key, value) {
-  try {
-    localStorage.setItem('gaf_ghc', JSON.stringify(cache));
-  } catch (e) {
-    if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-      console.warn('LocalStorage quota exceeded, clearing GitHub cache...');
-      for (const k in cache) delete cache[k];
-      if (key && value !== undefined) cache[key] = value;
-      try {
-        localStorage.setItem('gaf_ghc', JSON.stringify(cache));
-      } catch (err) {
-        console.error('Failed to save even after clearing cache', err);
-      }
+  if (!safeStorage.set('gaf_ghc', JSON.stringify(cache))) {
+    console.warn('LocalStorage quota exceeded, clearing GitHub cache...');
+    for (const k in cache) delete cache[k];
+    if (key && value !== undefined) cache[key] = value;
+    if (!safeStorage.set('gaf_ghc', JSON.stringify(cache))) {
+      console.error('Failed to save even after clearing cache');
     }
   }
 }
@@ -740,7 +742,7 @@ function repoLinkLabel(o){
 }
 
 function getBookmarks() {
-  const raw = localStorage.getItem('bookmarks');
+  const raw = safeStorage.get('bookmarks');
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
@@ -758,7 +760,7 @@ function toggleBookmark(event, orgIdx) {
   const idx = saved.indexOf(orgName);
   if (idx === -1) saved.push(orgName);
   else saved.splice(idx, 1);
-  localStorage.setItem('bookmarks', JSON.stringify(saved));
+  safeStorage.set('bookmarks', JSON.stringify(saved));
   applyFilters();
   // Notify the Watchlist panel (index.html inline script) about the change so
   // renderWatchlist() and updateAIInsights() stay in sync across both bookmark

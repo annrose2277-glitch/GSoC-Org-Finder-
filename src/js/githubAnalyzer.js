@@ -15,7 +15,7 @@ const CACHE_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
 
 function getLocalCache() {
   try {
-    const raw = localStorage.getItem(GITHUB_ANALYZER_CACHE_KEY);
+    const raw = safeStorage.get(GITHUB_ANALYZER_CACHE_KEY);
     if (!raw) return {};
     const cache = JSON.parse(raw);
     if (cache && typeof cache === 'object' && !Array.isArray(cache)) {
@@ -29,7 +29,7 @@ function getLocalCache() {
 
 function setLocalCache(cache) {
   try {
-    localStorage.setItem(GITHUB_ANALYZER_CACHE_KEY, JSON.stringify(cache));
+    safeStorage.set(GITHUB_ANALYZER_CACHE_KEY, JSON.stringify(cache));
   } catch (err) {
     console.warn('Could not write to localStorage for githubAnalyzer', err);
   }

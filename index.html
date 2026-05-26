@@ -69,16 +69,12 @@
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  <script src="src/js/safe-storage.js"></script>
   <script>
     // Theme restoration - runs early to prevent FOUC
     (function(){
-      try {
-        if (localStorage.getItem('theme') === 'dark') {
-          document.documentElement.classList.add('dark');
-        }
-      } catch(e) {
-        // localStorage might be unavailable in some browsers/modes
-        console.warn('Theme restoration failed:', e);
+      if (safeStorage.get('theme') === 'dark') {
+        document.documentElement.classList.add('dark');
       }
     })();
   </script>
@@ -1673,14 +1669,14 @@
   // THEME
   // ══════════════════════════════════════════════
   (function(){
-    const saved = localStorage.getItem('theme') || 'light';
+    const saved = safeStorage.get('theme') || 'light';
     document.documentElement.classList.toggle('dark', saved === 'dark');
     updateThemeIcon();
   })();
 
   window.toggleTheme = function(){
     const isDark = document.documentElement.classList.toggle('dark');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    safeStorage.set('theme', isDark ? 'dark' : 'light');
     updateThemeIcon();
   };
 
@@ -1852,7 +1848,7 @@ sections.forEach(sectionId => {
 
   function parseStoredBookmarks() {
     try {
-      const parsed = JSON.parse(localStorage.getItem('bookmarks') || '[]');
+      const parsed = JSON.parse(safeStorage.get('bookmarks') || '[]');
       return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
@@ -1928,7 +1924,7 @@ sections.forEach(sectionId => {
   const RECENTLY_VIEWED_LIMIT = 8;
   let recentlyViewed = (() => {
     try {
-      const parsed = JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY) || '[]');
+      const parsed = JSON.parse(safeStorage.get(RECENTLY_VIEWED_KEY) || '[]');
       if (!Array.isArray(parsed)) return [];
       const orgNames = new Set(ORGS.map(org => org.name));
       const seen = new Set();
@@ -2978,7 +2974,7 @@ sections.forEach(sectionId => {
     if (!orgName) return;
     if (shouldAdd) bookmarkedSet.add(orgName);
     else           bookmarkedSet.delete(orgName);
-    localStorage.setItem('bookmarks', JSON.stringify([...bookmarkedSet]));
+    safeStorage.set('bookmarks', JSON.stringify([...bookmarkedSet]));
     refreshOrgGridAfterBookmarkChange();
     renderWatchlist();
     updateAIInsights();
@@ -3012,7 +3008,7 @@ sections.forEach(sectionId => {
     if (!bookmarkedSet.size) return;
     if (!confirm(`Remove all ${bookmarkedSet.size} bookmarked organization(s)? This cannot be undone.`)) return;
     bookmarkedSet.clear();
-    localStorage.setItem('bookmarks', JSON.stringify([]));
+    safeStorage.set('bookmarks', JSON.stringify([]));
     applyFilters();
     renderWatchlist();
     updateAIInsights();
@@ -3220,7 +3216,7 @@ sections.forEach(sectionId => {
 
   function persistRecentlyViewed() {
     try {
-      localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(recentlyViewed));
+      safeStorage.set(RECENTLY_VIEWED_KEY, JSON.stringify(recentlyViewed));
     } catch (error) {
       console.warn('Recently viewed persistence failed:', error);
     }
@@ -3764,7 +3760,7 @@ if(org.ideas){
   function isAutosaveEnabled() {
     if (!localStorageAvailable) return false;
     try {
-      return localStorage.getItem(PROPOSAL_AUTOSAVE_KEY) === 'true';
+      return safeStorage.get(PROPOSAL_AUTOSAVE_KEY) === 'true';
     } catch {
       localStorageAvailable = false;
       return false;
@@ -3779,7 +3775,7 @@ if(org.ideas){
   function setAutosaveEnabled(enabled) {
     if (localStorageAvailable) {
       try {
-        localStorage.setItem(PROPOSAL_AUTOSAVE_KEY, enabled ? 'true' : 'false');
+        safeStorage.set(PROPOSAL_AUTOSAVE_KEY, enabled ? 'true' : 'false');
       } catch {
         localStorageAvailable = false;
       }
@@ -3793,7 +3789,7 @@ if(org.ideas){
     }
     if (!localStorageAvailable) return null;
     try {
-      const stored = localStorage.getItem(proposalStorageKey(orgName));
+      const stored = safeStorage.get(proposalStorageKey(orgName));
       if (stored !== null) {
         inMemoryDrafts[orgName] = stored;
         return stored;
@@ -3808,7 +3804,7 @@ if(org.ideas){
     inMemoryDrafts[orgName] = content;
     if (!localStorageAvailable) return;
     try {
-      localStorage.setItem(proposalStorageKey(orgName), content);
+      safeStorage.set(proposalStorageKey(orgName), content);
     } catch {
       localStorageAvailable = false;
     }
@@ -3818,7 +3814,7 @@ if(org.ideas){
     delete inMemoryDrafts[orgName];
     if (!localStorageAvailable) return;
     try {
-      localStorage.removeItem(proposalStorageKey(orgName));
+      safeStorage.remove(proposalStorageKey(orgName));
     } catch {
       localStorageAvailable = false;
     }

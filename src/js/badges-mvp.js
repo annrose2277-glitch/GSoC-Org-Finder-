@@ -51,7 +51,7 @@ const BadgeSystem = (function() {
   // Get badge data from localStorage
   function getBadgeData() {
     try {
-      const data = localStorage.getItem(STORAGE_KEY);
+      const data = safeStorage.get(STORAGE_KEY);
       if (!data) {
         return {
           explorer: 0,
@@ -117,7 +117,7 @@ const BadgeSystem = (function() {
   // Save badge data to localStorage
   function saveBadgeData(data) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      safeStorage.set(STORAGE_KEY, JSON.stringify(data));
     } catch (e) {
       console.warn('Failed to save badge data:', e);
     }
@@ -271,7 +271,7 @@ const BadgeSystem = (function() {
     if (confirm('Are you sure you want to reset all badge progress? This cannot be undone.\n\nNote: Badges are stored locally in your browser. Clearing browser data will also reset progress.')) {
       // Bug 3 fix: Wrap in try/catch for incognito/high-security environments
       try {
-        localStorage.removeItem(STORAGE_KEY);
+        safeStorage.remove(STORAGE_KEY);
       } catch (e) {
         console.warn('Failed to reset badge progress — localStorage unavailable:', e);
         return false;
