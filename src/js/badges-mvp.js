@@ -17,6 +17,10 @@
 // - Filter Pro (filters) - Advanced filtering usage
 // ══════════════════════════════════════════════
 
+const storage = (typeof window !== 'undefined' && window.safeStorage)
+  ? window.safeStorage
+  : { get: () => null, set: () => false, remove: () => false };
+
 const BadgeSystem = (function() {
   const STORAGE_KEY = 'gssoc_badges';
   
@@ -51,7 +55,7 @@ const BadgeSystem = (function() {
   // Get badge data from localStorage
   function getBadgeData() {
     try {
-      const data = safeStorage.get(STORAGE_KEY);
+      const data = storage.get(STORAGE_KEY);
       if (!data) {
         return {
           explorer: 0,
@@ -117,7 +121,7 @@ const BadgeSystem = (function() {
   // Save badge data to localStorage
   function saveBadgeData(data) {
     try {
-      safeStorage.set(STORAGE_KEY, JSON.stringify(data));
+      storage.set(STORAGE_KEY, JSON.stringify(data));
     } catch (e) {
       console.warn('Failed to save badge data:', e);
     }
@@ -271,7 +275,7 @@ const BadgeSystem = (function() {
     if (confirm('Are you sure you want to reset all badge progress? This cannot be undone.\n\nNote: Badges are stored locally in your browser. Clearing browser data will also reset progress.')) {
       // Bug 3 fix: Wrap in try/catch for incognito/high-security environments
       try {
-        safeStorage.remove(STORAGE_KEY);
+        storage.remove(STORAGE_KEY);
       } catch (e) {
         console.warn('Failed to reset badge progress — localStorage unavailable:', e);
         return false;

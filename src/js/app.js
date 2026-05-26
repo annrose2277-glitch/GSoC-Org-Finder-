@@ -8,16 +8,11 @@
  */
 
 
-// Example refactor for a vulnerable call:
-// OLD: safeStorage.set('gsoc_session', JSON.stringify(sessionData))
-// NEW: safeStorage.set('gsoc_session', JSON.stringify(sessionData))
-
-
 // ══════════════════════════════════════════════
 // THEME
 // ══════════════════════════════════════════════
 (function(){
-  const saved = safeStorage.get('theme') || 'light';
+  const saved = (typeof safeStorage !== 'undefined' && safeStorage.get('theme')) || 'light';
   document.documentElement.classList.toggle('dark', saved === 'dark');
   updateThemeIcon();
 })();
@@ -213,7 +208,14 @@ function closeAn(){document.getElementById('anBg').classList.remove('open');docu
 // GITHUB API
 // ══════════════════════════════════════════════
 const API='/api/github';
-const cache=JSON.parse(safeStorage.get('gaf_ghc')||'{}');
+const cache = (() => {
+  try {
+    const parsed = JSON.parse(safeStorage.get('gaf_ghc') || '{}');
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+})();
 
 /**
  * Saves cache to localStorage with quota exceeded error recovery.
@@ -223,12 +225,7 @@ const cache=JSON.parse(safeStorage.get('gaf_ghc')||'{}');
  */
 function saveCache(key, value) {
   if (!safeStorage.set('gaf_ghc', JSON.stringify(cache))) {
-    console.warn('LocalStorage quota exceeded, clearing GitHub cache...');
-    for (const k in cache) delete cache[k];
-    if (key && value !== undefined) cache[key] = value;
-    if (!safeStorage.set('gaf_ghc', JSON.stringify(cache))) {
-      console.error('Failed to save even after clearing cache');
-    }
+    console.warn('GitHub cache persistence unavailable; keeping in-memory cache only.');
   }
 }
 
